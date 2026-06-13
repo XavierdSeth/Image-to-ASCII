@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ASCII art converter</title>
+            <link rel="stylesheet" href="style.css">
+            <script defer src="script.js"></script>
+        </head>
+        <body>
+            <h1>// ASCII Art Converter</h1>
+            <p class="sub">drop in an image.</p>
+            <div class="controls">
+                <div>
+                    <label>image</label>
+                    <label class="file-button" for="file-input">choose file</label>
+                    <input id="file-input" type="file" accept="image/*">
+                    <div id="file-name">no file chosen</div>
+                </div>
+                <div>
+                    <label>width (Char)</label>
+                    <div class="row">
+                        <input type="range" id="width-slider" min="40" max="200" value="100" step="5">
+                        <span id="width-value">100</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label>colour</label>
+                    <div class="toggle-row">
+                        <label class="toggle">
+                            <input type="checkbox" id="colour-toggle">
+                            <div class="toggle-track"></div>
+                        </label>
+                        <span class="toggle-label">off</span>
+                    </div>
+                </div>
+            </div>
+            <canvas id="canvas"></canvas>
+            <pre id="output"></pre>
+
+        <script>
+            const CHARS = '@#MW&8B0QO%Xocvt/|()1?!+;:,. ';
+
+            const fileInput = document.getElementById('file-input');
+            const slider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const output = document.getElementById('output');
+            const cavas = document.getElementById('canvas')
+            const ctx = cavas.getContext('2d');
+            const filenameEl = document.getElementById('file-name');
+            const colourToggle = document.getElementById('colour-toggle');
+            const toggleLabel = document.querySelector('.toggle-label');
+
+            let currentImage = null;
+            fileInput.addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                filenameEl.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = event => {
+                    const img = new Image();
+                    img.onload = () => { currentImage = img; convert(); };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            slider.addEventListener('input', () => {
+                widthValue.textContent = slider.value;
+                if (currentImage) convert();
+            });
+
+            colourToggle.addEventListener('change', () => {
+                toggleLabel.textContent = colourToggle.checked ? 'on' : 'off';
+                if (currentImage) convert();
+            });
+
+            function convert() {
+                const cols = parseInt(slider.value);
+                const rows = Math.floor(cols * currentImage.height / (currentImage.width) * 0.45);
+                const coloured = colourToggle.checked;
+
+                cavas.width = cols;
+                cavas.height = rows;
+                ctx.drawImage(currentImage, 0, 0, cols, rows);
+                const data = ctx.getImageData(0, 0, cols, rows).data;
+
+                let html = '';
+                for (let y = 0; y < rows; y++) {
+                    for (let x = 0; x < cols; x++) {
+                    const i = (y * cols + x) * 4;
+                    const r = data[i], g = data[i+1], b = data[i+2];
+                    const brightness = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+                    const ch = CHARS[Math.floor(brightness * (CHARS.length - 1))];
+                    html += coloured ? `<span style="color: rgb(${r},${g},${b})">${ch}</span>` : ch;
+                    }
+                    html += '\n';
+                }
+                output.innerHTML = html;
+                output.style.color = coloured ? '' : '#d4d4d4';
+                output.style.display = 'block';
+            }
+        </script>
+        </body>
+    </html>
